@@ -33,12 +33,19 @@ class DefaultEmbeddingModel():
             encoded = [self.tokenizer.encode(d) for d in batch]
             input_ids = np.array([e.ids for e in encoded])
             attention_mask = np.array([e.attention_mask for e in encoded])
+        
             onnx_input = {
                 "input_ids": np.array(input_ids, dtype=np.int64),
                 "attention_mask": np.array(attention_mask, dtype=np.int64),
                 "token_type_ids": np.array([np.zeros(len(e), dtype=np.int64) for e in input_ids], dtype=np.int64),
             }
+            print("-"*30)
+            print(np.array(input_ids, dtype=np.int64), input_ids.shape)
+            print(np.array(attention_mask, dtype=np.int64), attention_mask.shape)
+            print(np.array([np.zeros(len(e), dtype=np.int64) for e in input_ids], dtype=np.int64), input_ids.shape)
+            print("-"*30)
             model_output = self.model.run(None, onnx_input)
+            
             last_hidden_state = model_output[0]
             # Perform mean pooling with attention weighting
             input_mask_expanded = np.broadcast_to(np.expand_dims(attention_mask, -1), last_hidden_state.shape)
@@ -48,11 +55,9 @@ class DefaultEmbeddingModel():
         return np.concatenate(all_embeddings)
 
 
-sample_text = "This is a sample text that is likely to overflow the entire model and will be truncated. \
-    Keep writing and writing until we reach the end of the model.This is a sample text that is likely to overflow the entire model and \
-    will be truncated. Keep writing and writing until we reach the end of the model.This is a sample text that is likely to overflow the entire \
-    model and will be truncated. Keep writing and writing until we reach the end of the model. This is a sample text that is likely to overflow \
-    the entire model and will be truncated. Keep writing and writing until we reach the end of the model. This is a sample text that is likely to overflow  \
-    the entire model and will be truncated. Keep writing and writing until we reach the end of the model."
+sample_text = "Hello world how are you."
 model = DefaultEmbeddingModel()
 embeddings = model([sample_text, sample_text])
+print(embeddings.shape)
+
+

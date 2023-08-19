@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@xenova/transformers": "^2.5.2",
+    "fs": "^0.0.1-security",
+    "natural": "^6.5.0",
+    "onnxjs": "^0.1.8",
+    "onnxruntime-node": "^1.15.1",
+    "tokenizer": "^1.1.2"
+  }
+}
