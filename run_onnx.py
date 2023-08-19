@@ -55,9 +55,9 @@ class DefaultEmbeddingModel():
         return np.concatenate(all_embeddings)
 
 
-sample_text = "Hello world how are you."
+sample_text = "Hello world how are you"
 model = DefaultEmbeddingModel()
 embeddings = model([sample_text, sample_text])
-print(embeddings.shape)
+print(embeddings)
 
 

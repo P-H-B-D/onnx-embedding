@@ -1,4 +1,29 @@
 const ort = require('onnxruntime-node');
+const jsTokens = require("js-tokens");
+const tokenizerJSON = require("./onnx/tokenizer.json");
+
+function cvtToTokens(jsString) {
+    let tokenValues = Array.from(jsTokens(jsString), (token) => token.value);
+    tokenValues = tokenValues.filter(value => value !== " " && value !== "\n");
+    const tokenization=[]
+    tokenization.push(101);
+    tokenValues.map((value) => {
+        value=value.toLowerCase();
+        if (tokenizerJSON.model.vocab[value] === undefined) {
+            tokenization.push(100); //UNK
+        }
+        else{
+            tokenization.push(tokenizerJSON.model.vocab[value])
+        }
+    });
+    tokenization.push(102);
+    return tokenization;
+}
+
+
+
+//Need to pad and generate attention mask
+
 
 function normalize(v) {
     if (v.length === 0 || v[0].length === 0) return [];
@@ -57,40 +82,35 @@ function generateTensor(data, dataType, dims) {
     return new ort.Tensor(dataType, data, dims);
 }
 
-async function cvtToTokens(inputString) {
-    const { AutoTokenizer } = await import('@xenova/transformers');
-    let tokenizer = await AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2');
-    let { input_ids } = await tokenizer(inputString);
-    const dataBigIntArray = Array.from(input_ids.data, value => BigInt(value));
-    paddingNum = 256 - dataBigIntArray.length;
-    let input_ids_return = dataBigIntArray.concat(new Array(paddingNum).fill(BigInt(0)));
-    let attentionMask = new Array(dataBigIntArray.length).fill(BigInt(1)).concat(new Array(paddingNum).fill(BigInt(0)));
-    return [input_ids_return, attentionMask];
-}
 
 
 async function main(inputString) {
     const session = await ort.InferenceSession.create('./onnx/model.onnx');
-    console.log(await cvtToTokens("Hello World how are you"));
-    
     
     // const input_ids= tokenize(inputString);
 
-    const randomNumbers = [
-        BigInt(101),
-        ...Array.from({ length: 3 }, () => getRandomInt(2001)), //Replace with actual token ids.
-        BigInt(102)
-    ];
+    // const randomNumbers = [
+    //     BigInt(101),
+    //     ...Array.from({ length: 3 }, () => getRandomInt(2001)), //Replace with actual token ids.
+    //     BigInt(102)
+    // ];
 
-    const zeroEntries = new Array(251).fill(BigInt(0)); //Padding
-    const input_ids = randomNumbers.concat(zeroEntries);
+    // const zeroEntries = new Array(251).fill(BigInt(0)); //Padding
+    // const input_ids = randomNumbers.concat(zeroEntries);
+
+    let unpadded=cvtToTokens(inputString).map(val=>{
+        return BigInt(val);
+    });
 
 
-    
+    let input_ids=unpadded.concat(new Array(256-unpadded.length).fill(BigInt(0)));
+    let aMask=unpadded.concat(new Array(256-unpadded.length).fill(BigInt(0))).fill(BigInt(1),0,unpadded.length);
+
+
     const input_ids_Tensor = generateTensor(input_ids, 'int64', [1, 256]);
 
-    const aMask = new Array(256).fill(BigInt(0)).fill(BigInt(1), 0, 5);
-    const attention_mask_Tensor = generateTensor(input_ids, 'int64', [1, 256]);
+    // const aMask = new Array(256).fill(BigInt(0)).fill(BigInt(1), 0, 5);
+    const attention_mask_Tensor = generateTensor(aMask, 'int64', [1, 256]);
 
     const token_type_ids = new Array(256).fill(BigInt(0));
     const token_type_ids_Tensor = generateTensor(token_type_ids, 'int64', [1, 256]);
@@ -108,8 +128,8 @@ async function main(inputString) {
     const results = await session.run(feeds);
     const lastHiddenState = results.last_hidden_state;
     const embeddings = meanPoolingWithAttentionWeighting(lastHiddenState, attention_mask_Tensor);
-    // console.log(embeddings)
+    console.log(embeddings)
     return embeddings;
 }
 
-main();
+main("Hello world how are you");
