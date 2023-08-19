@@ -5,6 +5,7 @@
     "natural": "^6.5.0",
     "onnxjs": "^0.1.8",
     "onnxruntime-node": "^1.15.1",
-    "tokenizer": "^1.1.2"
+    "tokenizer": "^1.1.2",
+    "tokenizers": "^0.13.3"
   }
 }
